@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HCA - Hjacks Cocktail App</title>
+    
+    <link rel="icon" type="image/png" href="https://img.icons8.com/ios-filled/50/ffffff/cocktail.png">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        body { background-color: #0b0f1a; color: #e2e8f0; font-family: 'Inter', sans-serif; }
+        .glass { background: rgba(23, 32, 53, 0.8); backdrop-filter: blur(12px); border: 1px solid rgba(255,255,255,0.08); }
+        .cocktail-card { transition: all 0.4s ease; }
+        .cocktail-card:hover { transform: translateY(-5px); border-color: #38bdf8; box-shadow: 0 10px 30px -10px rgba(56, 189, 248, 0.4); }
+        .gradient-text { background: linear-gradient(135deg, #38bdf8, #818cf8); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        .img-placeholder { background: linear-gradient(45deg, #1e293b, #0f172a); }
+        .animate-fade-in { animation: fadeIn 0.3s ease-out; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+    </style>
+</head>
+<body class="min-h-screen">
+
+    <header class="sticky top-0 z-50 glass px-6 py-4 shadow-2xl">
+        <div class="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-6">
+            <div class="flex items-center gap-3">
+                <div class="bg-sky-500 p-2 rounded-xl shadow-[0_0_15px_rgba(56,189,248,0.5)]">
+                    <i class="fas fa-cocktail text-white text-xl"></i>
+                </div>
+                <h1 class="text-2xl font-black tracking-tight gradient-text uppercase">hjacks cocktail app</h1>
+            </div>
+            
+            <div class="relative w-full md:w-1/3">
+                <input type="text" id="searchInput" placeholder="search Cocktail or ingredients..." 
+                    class="w-full bg-slate-900 border border-slate-700 rounded-2xl py-3 px-12 focus:outline-none focus:ring-2 focus:ring-sky-500 transition-all">
+                <i class="fas fa-search absolute left-4 top-3.5 text-slate-500"></i>
+            </div>
+
+            <div class="flex items-center gap-2">
+                <button onclick="toggleLists()" class="flex items-center gap-2 bg-sky-500/10 hover:bg-sky-500/20 border border-sky-500/30 px-6 py-2.5 rounded-2xl transition-all">
+                    <i class="fas fa-heart text-sky-400"></i>
+                    <span class="font-medium text-sm text-sky-100">Favorites</span>
+                </button>
+                <button onclick="toggleBackup()" title="Backup" class="w-11 h-11 flex items-center justify-center bg-slate-800 hover:bg-slate-700 rounded-2xl border border-slate-700 transition-all">
+                    <i class="fas fa-sync-alt text-slate-400"></i>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <main class="max-w-7xl mx-auto px-6 py-10">
+
+        <!-- Backup Section -->
+        <section id="backupSection" class="hidden mb-12 p-8 glass rounded-[2.5rem] border-2 border-dashed border-sky-500/20 animate-fade-in">
+            <div class="flex items-center gap-3 mb-6">
+                <i class="fas fa-cloud-upload-alt text-sky-400 text-xl"></i>
+                <h2 class="text-xl font-bold">Backup & Restore</h2>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <div class="space-y-3">
+                    <label class="text-xs font-bold text-slate-500 uppercase tracking-widest">Export (Copy Code)</label>
+                    <textarea id="exportArea" readonly class="w-full h-24 bg-black/40 rounded-2xl p-4 text-[10px] font-mono border border-white/5 focus:outline-none"></textarea>
+                    <button onclick="copyExport()" class="w-full bg-sky-600 hover:bg-sky-500 py-3 rounded-xl text-xs font-bold uppercase transition-all">Copy Code</button>
+                </div>
+                <div class="space-y-3">
+                    <label class="text-xs font-bold text-slate-500 uppercase tracking-widest">Import (Paste Code)</label>
+                    <textarea id="importArea" class="w-full h-24 bg-black/40 rounded-2xl p-4 text-[10px] font-mono border border-white/5 focus:ring-1 focus:ring-purple-500 outline-none" placeholder="Paste Backup-Code Here..."></textarea>
+                    <button onclick="importData()" class="w-full bg-purple-600 hover:bg-purple-500 py-3 rounded-xl text-xs font-bold uppercase transition-all">Recover</button>
+                </div>
+            </div>
+        </section>
+        
+        <!-- Favoriten Section -->
+        <section id="listsSection" class="hidden mb-12 animate-fade-in">
+            <h2 class="text-xl font-bold mb-6 flex items-center gap-2 text-sky-100">
+                <i class="fas fa-star text-yellow-500"></i> My Favorites
+            </h2>
+            <div id="savedLists" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4"></div>
+            <div class="h-px bg-gradient-to-r from-transparent via-slate-800 to-transparent mt-12"></div>
+        </section>
+
+        <!-- Main Grid -->
+        <div id="cocktailGrid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
+            <div class="col-span-full flex flex-col items-center justify-center py-40">
+                <div class="w-12 h-12 border-4 border-sky-500 border-t-transparent rounded-full animate-spin"></div>
+                <p class="mt-4 text-slate-400 font-medium">Mix recepies together...</p>
+            </div>
+        </div>
+    </main>
+
+    <!-- Modal -->
+    <div id="modal" class="fixed inset-0 bg-slate-950/90 hidden z-[100] overflow-y-auto backdrop-blur-md p-4">
+        <div class="min-h-screen flex items-center justify-center">
+            <div class="glass max-w-4xl w-full rounded-[2.5rem] overflow-hidden shadow-2xl relative border border-white/10">
+                <button onclick="closeModal()" class="absolute top-6 right-6 z-10 w-10 h-10 flex items-center justify-center bg-black/40 hover:bg-black/60 rounded-full text-white transition">
+                    <i class="fas fa-times"></i>
+                </button>
+                <div id="modalContent"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let allCocktails = [];
+        // EINHEITLICHER KEY: 'hca_favorites_v1'
+        let favorites = JSON.parse(localStorage.getItem('hca_favorites_v1')) || [];
+        const DATA_URL = 'https://raw.githubusercontent.com/rasmusab/iba-cocktails/main/wikipedia/iba-cocktails-wiki.json';
+
+        async function init() {
+            try {
+                const response = await fetch(DATA_URL);
+                allCocktails = await response.json();
+                render(allCocktails);
+                updateBackupText(); 
+            } catch (err) {
+                document.getElementById('cocktailGrid').innerHTML = `<p class="col-span-full text-center text-red-400">Error while loading Data.</p>`;
+            }
+        }
+
+        function render(data) {
+            const grid = document.getElementById('cocktailGrid');
+            grid.innerHTML = data.map(c => {
+                const isFav = favorites.includes(c.name);
+                return `
+                <div class="cocktail-card glass rounded-[2rem] overflow-hidden flex flex-col cursor-pointer" onclick="openDetail('${c.name.replace(/'/g, "\\'")}')">
+                    <div class="h-64 overflow-hidden relative img-placeholder">
+                        <img src="https://ui-avatars.com/api/?name=${encodeURIComponent(c.name)}&background=0f172a&color=38bdf8&size=512" 
+                             data-name="${c.name}"
+                             class="cocktail-img w-full h-full object-cover opacity-0 transition-opacity duration-500"
+                             onload="this.classList.remove('opacity-0')">
+                        <div class="absolute inset-0 bg-gradient-to-t from-slate-950/90 via-slate-950/20 to-transparent"></div>
+                        <button onclick="event.stopPropagation(); toggleFav('${c.name.replace(/'/g, "\\'")}')" 
+                            class="absolute top-4 right-4 w-10 h-10 rounded-full glass flex items-center justify-center hover:scale-110 transition z-10">
+                            <i class="${isFav ? 'fas fa-heart text-red-500' : 'far fa-heart text-white'}"></i>
+                        </button>
+                        <div class="absolute bottom-4 left-6 right-6">
+                             <span class="text-[10px] uppercase tracking-widest text-sky-400 font-bold">${c.category || 'Classic'}</span>
+                             <h3 class="text-xl font-bold text-white leading-tight truncate">${c.name}</h3>
+                        </div>
+                    </div>
+                </div>`;
+            }).join('');
+            loadRealImages();
+        }
+
+        async function loadRealImages() {
+            const imgs = document.querySelectorAll('.cocktail-img');
+            imgs.forEach(async (img) => {
+                const name = img.getAttribute('data-name');
+                try {
+                    const res = await fetch(`https://www.thecocktaildb.com/api/json/v1/1/search.php?s=${encodeURIComponent(name)}`);
+                    const data = await res.json();
+                    if(data.drinks && data.drinks[0].strDrinkThumb) {
+                        img.src = data.drinks[0].strDrinkThumb;
+                    }
+                } catch(e) { /* Fallback bleibt ui-avatar */ }
+            });
+        }
+
+        function toggleFav(name) {
+            if (favorites.includes(name)) {
+                favorites = favorites.filter(n => n !== name);
+            } else {
+                favorites.push(name);
+            }
+            localStorage.setItem('hca_favorites_v1', JSON.stringify(favorites));
+            render(allCocktails);
+            updateFavUI();
+            updateBackupText();
+        }
+
+        function toggleBackup() {
+            const section = document.getElementById('backupSection');
+            section.classList.toggle('hidden');
+            updateBackupText();
+        }
+
+        function toggleLists() {
+            const section = document.getElementById('listsSection');
+            section.classList.toggle('hidden');
+            updateFavUI();
+        }
+
+        function updateBackupText() {
+            const code = btoa(JSON.stringify(favorites));
+            document.getElementById('exportArea').value = code;
+        }
+
+        function copyExport() {
+            const area = document.getElementById('exportArea');
+            area.select();
+            document.execCommand('copy');
+            alert('Backup-Code kopiert!');
+        }
+
+        function importData() {
+            const code = document.getElementById('importArea').value.trim();
+            try {
+                const decoded = JSON.parse(atob(code));
+                if(Array.isArray(decoded)) {
+                    favorites = decoded;
+                    localStorage.setItem('hca_favorites_v1', JSON.stringify(favorites));
+                    alert('Sammlung erfolgreich importiert!');
+                    location.reload();
+                }
+            } catch(e) {
+                alert('Error: Uncorrect Backup-Code!');
+            }
+        }
+
+        function updateFavUI() {
+            const container = document.getElementById('savedLists');
+            const favItems = allCocktails.filter(c => favorites.includes(c.name));
+            container.innerHTML = favItems.length ? favItems.map(c => {
+                const img = document.querySelector(`img[data-name="${c.name}"]`)?.src || '';
+                return `
+                <div class="flex items-center gap-4 p-3 glass rounded-2xl cursor-pointer hover:bg-white/5 transition" onclick="openDetail('${c.name.replace(/'/g, "\\'")}')">
+                    <img src="${img}" class="w-12 h-12 rounded-xl object-cover bg-slate-800">
+                    <span class="font-bold text-sm flex-grow truncate">${c.name}</span>
+                    <i class="fas fa-trash text-slate-600 hover:text-red-500 p-2" onclick="event.stopPropagation(); toggleFav('${c.name}')"></i>
+                </div>`;
+            }).join('') : '<p class="text-slate-500 text-sm col-span-full">Favorites are empty.</p>';
+        }
+
+        function openDetail(name) {
+    const c = allCocktails.find(x => x.name === name);
+    const content = document.getElementById('modalContent');
+    
+    // Holt das aktuelle Bild aus der Grid-Ansicht
+    const currentImg = document.querySelector(`img[data-name="${name}"]`)?.src;
+    
+    content.innerHTML = `
+        <div class="flex flex-col lg:flex-row">
+            <!-- Bild-Sektion -->
+            <div class="lg:w-1/2 h-80 lg:h-auto relative">
+                <img src="${currentImg}" class="w-full h-full object-cover">
+                <div class="absolute inset-0 bg-gradient-to-t from-slate-950 via-transparent"></div>
+            </div>
+            
+            <!-- Info-Sektion -->
+            <div class="lg:w-1/2 p-8 lg:p-12">
+                <div class="mb-6">
+                    <span class="text-sky-400 font-bold uppercase tracking-[0.2em] text-[10px] block mb-1">
+                        ${c.category || 'Classic'} • ${c.type || 'Cocktail'}
+                    </span>
+                    <h2 class="text-4xl font-black text-white">${c.name}</h2>
+                </div>
+
+                <div class="space-y-8">
+                    <!-- Zutaten -->
+                    <div>
+                        <h4 class="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-4">Ingredients</h4>
+                        <ul class="grid grid-cols-1 gap-2">
+                            ${c.ingredients.map(ing => `
+                                <li class="flex items-center gap-3 bg-white/5 p-3 rounded-xl border border-white/5 text-sm">
+                                    <i class="fas fa-vial text-sky-500 text-xs"></i>
+                                    <span>${ing}</span>
+                                </li>
+                            `).join('')}
+                        </ul>
+                    </div>
+
+                    <!-- Zubereitung -->
+                    <div>
+                        <h4 class="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-4">Directiones</h4>
+                        <p class="text-slate-300 leading-relaxed italic bg-sky-500/5 p-5 rounded-2xl border-l-2 border-sky-500">
+                            "${c.method}"
+                        </p>
+                    </div>
+
+                    <!-- Notizen (erscheinen nur wenn vorhanden) -->
+                    ${c.notes ? `
+                    <div class="bg-amber-500/10 border border-amber-500/20 p-4 rounded-xl">
+                        <p class="text-xs text-amber-200/80 italic"><i class="fas fa-info-circle mr-2 text-amber-500"></i>${c.notes}</p>
+                    </div>
+                    ` : ''}
+
+                    <!-- Zusatz-Infos Grid -->
+                    <div class="grid grid-cols-2 gap-4">
+                        <div class="bg-slate-900/50 p-4 rounded-2xl border border-white/5">
+                            <p class="text-[10px] text-slate-500 uppercase font-bold mb-1">Glass</p>
+                            <p class="text-xs text-slate-200">${c.standard_drinkware || 'Standard Glass'}</p>
+                        </div>
+                        <div class="bg-slate-900/50 p-4 rounded-2xl border border-white/5">
+                            <p class="text-[10px] text-slate-500 uppercase font-bold mb-1">Serving suggestion</p>
+                            <p class="text-xs text-slate-200">${c.served || 'How you like'}</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>`;
+    
+    // Modal anzeigen
+    document.getElementById('modal').classList.remove('hidden');
+    document.body.style.overflow = 'hidden';
+}
+
+        function closeModal() {
+            document.getElementById('modal').classList.add('hidden');
+            document.body.style.overflow = 'auto';
+        }
+
+        document.getElementById('searchInput').addEventListener('input', (e) => {
+            const term = e.target.value.toLowerCase();
+            const filtered = allCocktails.filter(c => 
+                c.name.toLowerCase().includes(term) || 
+                c.ingredients.some(i => i.toLowerCase().includes(term))
+            );
+            render(filtered);
+        });
+
+        init();
+    </script>
+</body>
+</html>
